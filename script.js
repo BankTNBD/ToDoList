@@ -124,7 +124,7 @@ clearAll.addEventListener("click", () => {
     fetch(`${url}/clear`)
     .then((response) => response.json())
     .then((result) => {
-        todos = JSON.parse(JSON.stringify(result));
+        todos = [];
         showTodo();
     });
 });

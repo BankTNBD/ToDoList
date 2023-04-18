@@ -1,9 +1,12 @@
-const taskInput = document.querySelector(".task-input input"),
+const taskInput = document.querySelector(".task-input .detail"),
+taskSubject = document.querySelector(".task-input .subject"),
+taskDate = document.querySelector(".task-input .date"),
 filters = document.querySelectorAll(".filters span"),
 clearAll = document.querySelector(".clear-btn"),
 taskBox = document.querySelector(".task-box");
 
 const url = "http://server.iambanky.com:2000";
+//const url = "http://localhost:2000";
 let editId,
 isEditTask = false,
 todos;
@@ -12,11 +15,20 @@ window.onload = function() {
     showTodo("all");
 };
 
-fetch(`${url}`).then((response) => response.json())
+fetch(url, { method: 'GET'})
+.then((response) => response.json())
     .then((result) => {
         todos = JSON.parse(JSON.stringify(result));
-        showTodo("all")
+        showTodo("all");
 });
+
+if(taskDate.value == "") {
+    let date_time = new Date();
+    let date = ("0" + date_time.getDate()).slice(-2);
+    let month = ("0" + (date_time.getMonth() + 1)).slice(-2);
+    let year = date_time.getFullYear();
+    taskDate.value = year + "-" + month + "-" + date;
+}
 
 filters.forEach(btn => {
     btn.addEventListener("click", () => {
@@ -27,26 +39,30 @@ filters.forEach(btn => {
 });
 
 function showTodo(filter) {
-    /*
-    fetch(`${url}`).then((response) => response.json())
-    .then((result) => {
-        todos = JSON.parse(JSON.stringify(result));
-    });*/
+    if (filter == "completed") {
+        filter = 1;
+    } else if (filter == "pending") {
+        filter = 0;
+    }
     let liTag = "";
     if(todos) {
-        Array.from(todos).forEach((todo, id) => {
-            let completed = todo.status == "completed" ? "checked" : "";
-            if(filter == todo.status || filter == "all") {
+        Array.from(todos).forEach((todo) => {
+            let completed = todo.Status == 1 ? "checked" : "";
+            if(filter == todo.Status || filter == "all") {
                 liTag += `<li class="task">
-                            <label for="${id}">
-                                <input onclick="updateStatus(this)" type="checkbox" id="${id}" ${completed}>
-                                <p class="${completed}">${todo.name}</p>
+                            <label for="${todo.ID}">
+                                <input onclick="updateStatus(this)" type="checkbox" id="${todo.ID}" ${completed}>
+                                <div>
+                                    <p>${(todo.Deadline).slice(0, 10)}</p>
+                                    <p>${todo.Subject}</p>
+                                    <p>${todo.Detail}</p>
+                                </div>
                             </label>
                             <div class="settings">
                                 <i onclick="showMenu(this)" class="uil uil-ellipsis-h"></i>
                                 <ul class="task-menu">
-                                    <li onclick='editTask(${id}, "${todo.name}")'><i class="uil uil-pen"></i>Edit</li>
-                                    <li onclick='deleteTask(${id}, "${filter}")'><i class="uil uil-trash"></i>Delete</li>
+                                    <li onclick='editTask(${todo.ID}, "${(todo.Deadline).slice(0, 10)}", "${todo.Subject}", "${todo.Detail}")'><i class="uil uil-pen"></i>Edit</li>
+                                    <li onclick='deleteTask(${todo.ID}, "${filter}")'><i class="uil uil-trash"></i>Delete</li>
                                 </ul>
                             </div>
                         </li>`;
@@ -74,32 +90,26 @@ function updateStatus(selectedTask) {
     let taskName = selectedTask.parentElement.lastElementChild;
     if(selectedTask.checked) {
         taskName.classList.add("checked");
-        fetch(`${url}/update/${selectedTask.id}/completed`)
+        fetch(`${url}/update/${selectedTask.id}/1`)
         .then((response) => response.json())
         .then((result) => {
             todos = JSON.parse(JSON.stringify(result));
         });
-        //todos[selectedTask.id].status = "completed";
     } else {
         taskName.classList.remove("checked");
-        fetch(`${url}/update/${selectedTask.id}/pending`)
+        fetch(`${url}/update/${selectedTask.id}/0`)
         .then((response) => response.json())
         .then((result) => {
             todos = JSON.parse(JSON.stringify(result));
         });
-        //todos[selectedTask.id].status = "pending";
     }
-    //localStorage.setItem("todo-list", JSON.stringify(todos))
-    fetch(`${url}`)
-    .then((response) => response.json())
-    .then((result) => {
-        todos = JSON.parse(JSON.stringify(result));
-    });
 }
 
-function editTask(taskId, textName) {
+function editTask(taskId, textDate, textSubject, textName) {
     editId = taskId;
     isEditTask = true;
+    taskDate.value = textDate;
+    taskSubject.value = textSubject;
     taskInput.value = textName;
     taskInput.focus();
     taskInput.classList.add("active");
@@ -107,20 +117,16 @@ function editTask(taskId, textName) {
 
 function deleteTask(deleteId, filter) {
     isEditTask = false;
-    //todos.splice(deleteId, 1);
     fetch(`${url}/delete/${deleteId}`)
     .then((response) => response.json())
     .then((result) => {
         todos = JSON.parse(JSON.stringify(result));
         showTodo(filter);
     });
-    //localStorage.setItem("todo-list", JSON.stringify(todos));
 }
 
 clearAll.addEventListener("click", () => {
     isEditTask = false;
-    //todos.splice(0, todos.length);
-    //localStorage.setItem("todo-list", JSON.stringify(todos));
     fetch(`${url}/clear`)
     .then((response) => response.json())
     .then((result) => {
@@ -130,30 +136,41 @@ clearAll.addEventListener("click", () => {
 });
 
 taskInput.addEventListener("keyup", e => {
-    let userTask = taskInput.value.trim();
-    if(e.key == "Enter" && userTask) {
+    let userTaskDate = taskDate.value;
+    let userTaskSubject = taskSubject.value.trim();
+    let userTaskInput = taskInput.value.trim();
+    if(e.key == "Enter" && userTaskInput && userTaskSubject) {
+        if(userTaskDate == "") {
+            let date_time = new Date();
+            let date = ("0" + date_time.getDate()).slice(-2);
+            let month = ("0" + (date_time.getMonth() + 1)).slice(-2);
+            let year = date_time.getFullYear();
+            userTaskDate = year + "-" + month + "-" + date;
+        }
         if(!isEditTask) {
             todos = !todos ? [] : todos;
-            //let taskInfo = {name: userTask, status: "pending"};
-            fetch(`${url}/add/${userTask}`)
+            fetch(`${url}/add/${userTaskDate}/${userTaskSubject}/${userTaskInput}`)
             .then((response) => response.json())
             .then((result) => {
                 todos = JSON.parse(JSON.stringify(result));
                 showTodo(document.querySelector("span.active").id);
             });
-            //todos.push(taskInfo);
         } else {
             isEditTask = false;
-            fetch(`${url}/edit/${editId}/${userTask}`)
+            fetch(`${url}/edit/${editId}/${userTaskDate}/${userTaskSubject}/${userTaskInput}`)
             .then((response) => response.json())
             .then((result) => {
                 todos = JSON.parse(JSON.stringify(result));
                 showTodo(document.querySelector("span.active").id);
             });
-            //todos[editId].name = userTask;
         }
+        let date_time = new Date();
+        let date = ("0" + date_time.getDate()).slice(-2);
+        let month = ("0" + (date_time.getMonth() + 1)).slice(-2);
+        let year = date_time.getFullYear();
+        taskSubject.value = "";
         taskInput.value = "";
-        //localStorage.setItem("todo-list", JSON.stringify(todos));
+        taskDate.value = year + "-" + month + "-" + date;
         showTodo(document.querySelector("span.active").id);
     }
 });

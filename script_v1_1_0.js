@@ -127,12 +127,14 @@ function deleteTask(deleteId, filter) {
 
 clearAll.addEventListener("click", () => {
     isEditTask = false;
-    fetch(`${url}/clear`)
-    .then((response) => response.json())
-    .then((result) => {
-        todos = [];
-        showTodo();
-    });
+    if (confirm("Delete all data") == true) {
+        fetch(`${url}/clear`)
+        .then((response) => response.json())
+        .then((result) => {
+            todos = [];
+            showTodo();
+        });
+    }
 });
 
 taskInput.addEventListener("keyup", e => {

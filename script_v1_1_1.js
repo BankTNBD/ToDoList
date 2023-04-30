@@ -117,7 +117,8 @@ function editTask(taskId, textDate, textSubject, textName) {
 
 function deleteTask(deleteId, filter) {
     isEditTask = false;
-    fetch(`${url}/delete/${deleteId}`)
+    let password = prompt("Please enter password:");
+    fetch(`${url}/delete/${deleteId}/${password}`)
     .then((response) => response.json())
     .then((result) => {
         todos = JSON.parse(JSON.stringify(result));
@@ -127,8 +128,9 @@ function deleteTask(deleteId, filter) {
 
 clearAll.addEventListener("click", () => {
     isEditTask = false;
+    let password = prompt("Please enter password:");
     if (confirm("Delete all data") == true) {
-        fetch(`${url}/clear`)
+        fetch(`${url}/clear/${password}`)
         .then((response) => response.json())
         .then((result) => {
             todos = [];
@@ -149,6 +151,8 @@ taskInput.addEventListener("keyup", e => {
             let year = date_time.getFullYear();
             userTaskDate = year + "-" + month + "-" + date;
         }
+        userTaskInput = userTaskInput.replace(/[.\_\~\:\?\#\[\]\@\!\$\&\'\(\)\*\+\,\;\=\"\<\>\%\{\}\|\\\^\`\/\-]/g, '');
+        userTaskSubject = userTaskSubject.replace(/[.\_\~\:\?\#\[\]\@\!\$\&\'\(\)\*\+\,\;\=\"\<\>\%\{\}\|\\\^\`\/\-]/g, '');
         if(!isEditTask) {
             todos = !todos ? [] : todos;
             fetch(`${url}/add/${userTaskDate}/${userTaskSubject}/${userTaskInput}`)
